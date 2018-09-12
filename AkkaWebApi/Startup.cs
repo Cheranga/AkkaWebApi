@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Akka.Actor;
+using AkkaWebApi.Actors;
 using AkkaWebApi.Repositories;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -30,6 +31,7 @@ namespace AkkaWebApi
             var connectionString = @"Data Source=(localdb)\ProjectsV13;Initial Catalog=TestDb;Integrated Security=True;";
             var customerRepository = new CustomerRepository(connectionString);
             services.AddSingleton<ICustomerRepository>(provider => customerRepository);
+            RegisterActorSystem(services);
 
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
         }
@@ -38,6 +40,8 @@ namespace AkkaWebApi
         {
             var actorSystem = ActorSystem.Create("api-actorsystem");
             services.AddSingleton(typeof(ActorSystem), (serviceProvider) => actorSystem);
+
+            services.AddSingleton<ICustomerHandler>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

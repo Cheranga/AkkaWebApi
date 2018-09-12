@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using Akka.Actor;
 using AkkaWebApi.Actors;
+using AkkaWebApi.Messages;
 using AkkaWebApi.Repositories;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,19 +12,17 @@ namespace AkkaWebApi.Controllers
     [ApiController]
     public class ActorsController : ControllerBase
     {
-        private readonly ActorSystem _actorSystem;
+        private readonly ICustomerHandler _customerHandler;
 
-        public ActorsController(ActorSystem actorSystem)
+        public ActorsController(ICustomerHandler customerHandler)
         {
-            _actorSystem = actorSystem;
+            _customerHandler = customerHandler;
         }
 
         [HttpGet("{name}")]
         public async Task<IActionResult> GetAsync([FromRoute]string name)
         {
-            var customerActorProps = Props.Create<CustomerActor>();
-
-            var customers = await _customerRepository.GetCustomerByNameAsync(name);
+            var customers = await _customerHandler.HandleAsync(new GetCustomerByNameMessage(name));
             if (customers.Any())
             {
                 return Ok(customers);

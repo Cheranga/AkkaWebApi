@@ -11,18 +11,12 @@ using AkkaWebApi.Repositories;
 namespace AkkaWebApi.Actors
 {
     public class CustomerActor : ReceiveActor
-    {
-        private readonly ActorSystem _actorSystem;
+    {   
         private readonly ICustomerRepository _customerRepository;
-        private readonly IActorRef _customerRouterActor;
 
-        public CustomerActor(ActorSystem actorSystem, ICustomerRepository customerRepository)
+        public CustomerActor(ICustomerRepository customerRepository)
         {
-            _actorSystem = actorSystem;
             _customerRepository = customerRepository;
-
-            var props = Props.Create<CustomerActor>().WithRouter(new RoundRobinPool(5, new DefaultResizer(5, 10)));
-            _customerRouterActor = _actorSystem.ActorOf(props);
 
             ReceiveAsync<GetCustomerByNameMessage>(HandleAsync);
         }
@@ -32,5 +26,28 @@ namespace AkkaWebApi.Actors
             var customers = await _customerRepository.GetCustomerByNameAsync(message.Name);
             return customers;
         }
+    }
+
+    public interface ICustomerHandler
+    {
+        Task<List<Customer>> HandleAsync(GetCustomerByNameMessage message);
+    }
+
+    public class CustomerHandler : ICustomerHandler
+    {
+        private readonly IActorRef _customerRouterActor;
+
+        public CustomerHandler(ActorSystem actorSystem)
+        {
+            var props = Props.Create<CustomerActor>().WithRouter(new RoundRobinPool(5, new DefaultResizer(5, 10)));
+            _customerRouterActor = actorSystem.ActorOf(props, "customer-actor");
+        }
+
+        public Task<List<Customer>> HandleAsync(GetCustomerByNameMessage message)
+        {
+            return _customerRouterActor.Ask<List<Customer>>(message);
+        }
+
+
     }
 }
